@@ -14,11 +14,11 @@ public class PlayerController : MonoBehaviour
     private SpriteRenderer sr;
     private TrailRenderer trail;
     
-    private HideBox[] allBoxes;
+    private GameObject[] allBoxes;
     private int currentBoxIndex;
     
     public bool IsHiding { get; private set; }
-    public HideBox CurrentBox { get; private set; }
+    public GameObject CurrentBox { get; private set; }
 
     void Awake()
     {
@@ -29,19 +29,17 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        // Cache all boxes sorted by position (left-right, top-bottom for grid navigation)
-        allBoxes = FindObjectsOfType<HideBox>();
+        allBoxes = GameObject.FindGameObjectsWithTag("Box");
         SortBoxesByGrid();
     }
 
     void SortBoxesByGrid()
     {
-        // Sort: top-to-bottom, then left-to-right (for 3x3 grid navigation)
         System.Array.Sort(allBoxes, (a, b) =>
         {
-            int rowCompare = -a.transform.position.y.CompareTo(b.transform.position.y); // top first
+            int rowCompare = -a.transform.position.y.CompareTo(b.transform.position.y);
             if (rowCompare != 0) return rowCompare;
-            return a.transform.position.x.CompareTo(b.transform.position.x); // left first
+            return a.transform.position.x.CompareTo(b.transform.position.x);
         });
     }
 
@@ -72,60 +70,129 @@ public class PlayerController : MonoBehaviour
 
     void HandleBoxSelection()
     {
+        // Current box destroyed? Find nearest valid one
+        if (CurrentBox == null || !CurrentBox.activeInHierarchy)
+        {
+            int nearestIndex = FindNearestActiveBox();
+            if (nearestIndex >= 0)
+            {
+                SwitchToBox(nearestIndex);
+            }
+            else
+            {
+                // No boxes left
+                IsHiding = false;
+                sr.color = normalColor;
+                if (trail) trail.enabled = true;
+            }
+            return;
+        }
+
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
 
         int col = currentBoxIndex % 3;
         int row = currentBoxIndex / 3;
-        int newIndex = currentBoxIndex;
+        int newIndex = -1;
 
-        // Grid navigation: WASD moves selection
         if (kb.wKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame)
         {
-            if (row > 0) newIndex = currentBoxIndex - 3;
+            newIndex = FindActiveBoxInDirection(row, col, -1, 0);
         }
         else if (kb.sKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame)
         {
-            if (row < 2) newIndex = currentBoxIndex + 3;
+            newIndex = FindActiveBoxInDirection(row, col, 1, 0);
         }
         else if (kb.aKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame)
         {
-            if (col > 0) newIndex = currentBoxIndex - 1;
+            newIndex = FindActiveBoxInDirection(row, col, 0, -1);
         }
         else if (kb.dKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame)
         {
-            if (col < 2) newIndex = currentBoxIndex + 1;
+            newIndex = FindActiveBoxInDirection(row, col, 0, 1);
         }
 
-        if (newIndex != currentBoxIndex)
+        if (newIndex >= 0 && newIndex != currentBoxIndex)
         {
             SwitchToBox(newIndex);
         }
     }
 
+    int FindActiveBoxInDirection(int startRow, int startCol, int rowDir, int colDir)
+    {
+        int r = startRow + rowDir;
+        int c = startCol + colDir;
+
+        while (r >= 0 && r < 3 && c >= 0 && c < 3)
+        {
+            int index = r * 3 + c;
+            if (index < allBoxes.Length && allBoxes[index] != null && allBoxes[index].activeInHierarchy)
+            {
+                return index;
+            }
+            r += rowDir;
+            c += colDir;
+        }
+
+        return -1;
+    }
+
+    int FindNearestActiveBox()
+    {
+        int bestIndex = -1;
+        float bestDist = float.MaxValue;
+
+        for (int i = 0; i < allBoxes.Length; i++)
+        {
+            if (allBoxes[i] != null && allBoxes[i].activeInHierarchy)
+            {
+                float dist = Vector3.Distance(transform.position, allBoxes[i].transform.position);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestIndex = i;
+                }
+            }
+        }
+
+        return bestIndex;
+    }
+
     void SwitchToBox(int newIndex)
     {
         // Exit current box
-        CurrentBox?.OnPlayerExit();
+        if (CurrentBox != null && CurrentBox.activeInHierarchy)
+        {
+            var hideBox = CurrentBox.GetComponent<HideBox>();
+            if (hideBox != null) hideBox.OnPlayerExit();
+            
+            var boxCtrl = CurrentBox.GetComponent<BoxController>();
+            if (boxCtrl != null) boxCtrl.playerInside = false;
+        }
         
         // Enter new box
         currentBoxIndex = newIndex;
         CurrentBox = allBoxes[currentBoxIndex];
         transform.position = CurrentBox.transform.position;
-        CurrentBox.OnPlayerEnter();
+        
+        var newHideBox = CurrentBox.GetComponent<HideBox>();
+        if (newHideBox != null) newHideBox.OnPlayerEnter();
+        
+        var newBoxCtrl = CurrentBox.GetComponent<BoxController>();
+        if (newBoxCtrl != null) newBoxCtrl.playerInside = true;
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
         if (IsHiding) return;
         
-        if (other.TryGetComponent<HideBox>(out var box))
+        if (other.CompareTag("Box") && other.gameObject.activeInHierarchy)
         {
-            EnterHide(box);
+            EnterHide(other.gameObject);
         }
     }
 
-    void EnterHide(HideBox box)
+    void EnterHide(GameObject box)
     {
         IsHiding = true;
         CurrentBox = box;
@@ -135,10 +202,11 @@ public class PlayerController : MonoBehaviour
         if (trail) trail.enabled = false;
         
         transform.position = box.transform.position;
-        box.OnPlayerEnter();
+        
+        var hideBox = box.GetComponent<HideBox>();
+        if (hideBox != null) hideBox.OnPlayerEnter();
+        
+        var boxCtrl = box.GetComponent<BoxController>();
+        if (boxCtrl != null) boxCtrl.playerInside = true;
     }
-
-    // Keep these for external access if needed
-    public void SetNearBox(HideBox box) { }
-    public void ClearNearBox(HideBox box) { }
 }
