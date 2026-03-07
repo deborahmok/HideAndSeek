@@ -14,6 +14,9 @@ public class PlayerController : MonoBehaviour
     private SpriteRenderer sr;
     private TrailRenderer trail;
     
+    private HideBox[] allBoxes;
+    private int currentBoxIndex;
+    
     public bool IsHiding { get; private set; }
     public HideBox CurrentBox { get; private set; }
 
@@ -24,22 +27,40 @@ public class PlayerController : MonoBehaviour
         trail = GetComponent<TrailRenderer>();
     }
 
+    void Start()
+    {
+        // Cache all boxes sorted by position (left-right, top-bottom for grid navigation)
+        allBoxes = FindObjectsOfType<HideBox>();
+        SortBoxesByGrid();
+    }
+
+    void SortBoxesByGrid()
+    {
+        // Sort: top-to-bottom, then left-to-right (for 3x3 grid navigation)
+        System.Array.Sort(allBoxes, (a, b) =>
+        {
+            int rowCompare = -a.transform.position.y.CompareTo(b.transform.position.y); // top first
+            if (rowCompare != 0) return rowCompare;
+            return a.transform.position.x.CompareTo(b.transform.position.x); // left first
+        });
+    }
+
     void Update()
     {
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
         
-        HandleMovement();
-        HandleHideInput();
+        if (IsHiding)
+            HandleBoxSelection();
+        else
+            HandleMovement();
     }
 
     void HandleMovement()
     {
-        if (IsHiding) return;
-        
-        Vector2 dir = Vector2.zero;
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
         
+        Vector2 dir = Vector2.zero;
         if (kb.wKey.isPressed || kb.upArrowKey.isPressed) dir.y += 1;
         if (kb.sKey.isPressed || kb.downArrowKey.isPressed) dir.y -= 1;
         if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) dir.x -= 1;
@@ -49,44 +70,75 @@ public class PlayerController : MonoBehaviour
         rb.MovePosition(rb.position + dir * moveSpeed * Time.deltaTime);
     }
 
-    void HandleHideInput()
+    void HandleBoxSelection()
     {
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
-        
-        if (kb.spaceKey.wasPressedThisFrame || kb.eKey.wasPressedThisFrame)
+
+        int col = currentBoxIndex % 3;
+        int row = currentBoxIndex / 3;
+        int newIndex = currentBoxIndex;
+
+        // Grid navigation: WASD moves selection
+        if (kb.wKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame)
         {
-            if (IsHiding)
-                ExitHide();
-            else if (CurrentBox != null)
-                EnterHide();
+            if (row > 0) newIndex = currentBoxIndex - 3;
+        }
+        else if (kb.sKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame)
+        {
+            if (row < 2) newIndex = currentBoxIndex + 3;
+        }
+        else if (kb.aKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame)
+        {
+            if (col > 0) newIndex = currentBoxIndex - 1;
+        }
+        else if (kb.dKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame)
+        {
+            if (col < 2) newIndex = currentBoxIndex + 1;
+        }
+
+        if (newIndex != currentBoxIndex)
+        {
+            SwitchToBox(newIndex);
         }
     }
 
-    void EnterHide()
+    void SwitchToBox(int newIndex)
     {
-        IsHiding = true;
-        sr.color = hiddenColor;
-        if (trail) trail.enabled = false;
+        // Exit current box
+        CurrentBox?.OnPlayerExit();
+        
+        // Enter new box
+        currentBoxIndex = newIndex;
+        CurrentBox = allBoxes[currentBoxIndex];
         transform.position = CurrentBox.transform.position;
         CurrentBox.OnPlayerEnter();
     }
 
-    void ExitHide()
+    void OnTriggerEnter2D(Collider2D other)
     {
-        IsHiding = false;
-        sr.color = normalColor;
-        if (trail) trail.enabled = true;
-        CurrentBox?.OnPlayerExit();
+        if (IsHiding) return;
+        
+        if (other.TryGetComponent<HideBox>(out var box))
+        {
+            EnterHide(box);
+        }
     }
 
-    public void SetNearBox(HideBox box)
+    void EnterHide(HideBox box)
     {
+        IsHiding = true;
         CurrentBox = box;
+        currentBoxIndex = System.Array.IndexOf(allBoxes, box);
+        
+        sr.color = hiddenColor;
+        if (trail) trail.enabled = false;
+        
+        transform.position = box.transform.position;
+        box.OnPlayerEnter();
     }
 
-    public void ClearNearBox(HideBox box)
-    {
-        if (CurrentBox == box) CurrentBox = null;
-    }
+    // Keep these for external access if needed
+    public void SetNearBox(HideBox box) { }
+    public void ClearNearBox(HideBox box) { }
 }
