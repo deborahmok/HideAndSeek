@@ -3,7 +3,7 @@ using System.Collections;
 
 public class ChaserController : MonoBehaviour
 {
-    [SerializeField] private float appearInterval = 5f;
+    [SerializeField] private float appearInterval = 10f;
     [SerializeField] private float visibleDuration = 10f;
     [SerializeField] private float roamDuration = 7f;
     [SerializeField] private float moveSpeed = 3f;
