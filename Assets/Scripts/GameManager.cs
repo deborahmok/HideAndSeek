@@ -6,7 +6,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [Header("Timer")]
-    public float hideTime = 8f;
+    public float hideTime = 10f;
     public float urgentTime = 3f;
     
     [Header("References")]
@@ -34,38 +34,43 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         timer = hideTime;
-        timerActive = false;
-        gameStarted = false;
+        timerActive = true;
+        gameStarted = true;
+
+        AudioManager.Instance?.PlayWhistle();
         
         if (darkOverlay)
         {
             darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
             darkOverlay.gameObject.SetActive(true);
         }
-        
-        // Play start sound, then begin timer when it ends
-        float startSoundLength = AudioManager.Instance?.PlayTimerStartAndGetLength() ?? 0f;
-        Invoke(nameof(BeginTimer), startSoundLength);
     }
 
-    void BeginTimer()
-    {
-        gameStarted = true;
-        timerActive = true;
-        AudioManager.Instance?.PlayTickLoop();
-    }
+    // void BeginTimer()
+    // {
+    //     gameStarted = true;
+    //     timerActive = true;
+    //     AudioManager.Instance?.PlayTickLoop();
+    // }
 
     void Update()
     {
         if (!timerActive || IsGameOver) return;
 
-        timer -= Time.deltaTime;
+        if (timer <= 3f && gameStarted)
+        {
+            gameStarted = false;
+
+            AudioManager.Instance?.StopWhistle();
+            AudioManager.Instance?.PlayGasp();
+            AudioManager.Instance?.PlayBuildupFootsteps();
+        }
         
         // Urgent phase: overlay flash + end sound
         if (timer <= urgentTime)
         {
             UpdateUrgentFlash();
-            AudioManager.Instance?.EnsureTimerEndPlaying();
+            // AudioManager.Instance?.EnsureTimerEndPlaying();
         }
         
         if (timer <= 0)
@@ -92,11 +97,14 @@ public class GameManager : MonoBehaviour
     void TimerEnd()
     {
         timerActive = false;
+
+        AudioManager.Instance?.StopBuildupFootsteps();
+        AudioManager.Instance?.PlayDoorOpen();
         
         if (darkOverlay)
             darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
         
-        AudioManager.Instance?.StopAllTimerSounds();
+        // AudioManager.Instance?.StopAllTimerSounds();
         
         Invoke(nameof(SpawnMonster), 0.3f);
     }
@@ -112,7 +120,7 @@ public class GameManager : MonoBehaviour
     public void PlayerCaught()
     {
         IsGameOver = true;
-        AudioManager.Instance?.PlayCaught();
+        // AudioManager.Instance?.PlayCaught();
         Debug.Log("CAUGHT! Game Over");
         // Add game over logic
     }
@@ -120,7 +128,7 @@ public class GameManager : MonoBehaviour
     public void PlayerWin()
     {
         IsGameOver = true;
-        AudioManager.Instance?.PlayWin();
+        // AudioManager.Instance?.PlayWin();
         Debug.Log("You survived!");
         // Add win logic
     }

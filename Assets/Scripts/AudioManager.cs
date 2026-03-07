@@ -6,110 +6,174 @@ public class AudioManager : MonoBehaviour
 
     [Header("Audio Sources")]
     public AudioSource sfxSource;
-    public AudioSource tickSource;
-    public AudioSource timerEndSource;
+    public AudioSource roamSource;
+    public AudioSource buildupFootstepSource;
+    public AudioSource chaserWalkSource;
+    public AudioSource stabSource;
     public AudioSource heartbeatSource;
-    
-    [Header("Timer Clips")]
-    public AudioClip timerStartSound;
-    public AudioClip tickSound;
-    public AudioClip timerEndSound;
-    
+
+    [Header("Roaming / Warning Clips")]
+    public AudioClip whistleClip;
+    public AudioClip gaspClip;
+    public AudioClip doorOpenClip;
+    public AudioClip buildupFootstepClip;
+
+    [Header("Chaser In Room Clips")]
+    public AudioClip chaserWalkClip;
+    public AudioClip stabClip;
+    public AudioClip screamClip;
+
     [Header("Game End Clips")]
     public AudioClip caughtSound;
     public AudioClip winSound;
-    
+
     [Header("Heartbeat")]
     public AudioClip heartbeatClip;
 
-    private bool timerEndStarted;
-
-    void Awake()
+    private void Awake()
     {
         Instance = this;
     }
 
-    public float PlayTimerStartAndGetLength()
+    public void PlayWhistle()
     {
-        if (sfxSource && timerStartSound)
-        {
-            sfxSource.PlayOneShot(timerStartSound);
-            return timerStartSound.length;
-        }
-        return 0f;
+        if (roamSource == null || whistleClip == null) return;
+
+        roamSource.clip = whistleClip;
+        roamSource.loop = true;
+        roamSource.volume = 1f;
+        roamSource.pitch = 1f;
+        roamSource.Play();
     }
 
-    public void PlayTickLoop()
+    public void StopWhistle()
     {
-        if (tickSource && tickSound)
-        {
-            tickSource.clip = tickSound;
-            tickSource.loop = true;
-            tickSource.Play();
-        }
+        if (roamSource != null)
+            roamSource.Stop();
     }
 
-    public void EnsureTimerEndPlaying()
+    public void PlayBuildupFootsteps()
     {
-        if (timerEndStarted) return;
-        timerEndStarted = true;
-        
-        // Stop tick, start end sound
-        if (tickSource) tickSource.Stop();
-        
-        if (timerEndSource && timerEndSound)
-        {
-            timerEndSource.clip = timerEndSound;
-            timerEndSource.loop = false;
-            timerEndSource.Play();
-        }
+        if (buildupFootstepSource == null || buildupFootstepClip == null) return;
+
+        buildupFootstepSource.clip = buildupFootstepClip;
+        buildupFootstepSource.loop = true;
+        buildupFootstepSource.volume = 0.15f;
+        buildupFootstepSource.pitch = 1f;
+        buildupFootstepSource.Play();
     }
 
-    public void StopAllTimerSounds()
+    public void SetBuildupFootstepIntensity(float normalized)
     {
-        if (tickSource) tickSource.Stop();
-        if (timerEndSource) timerEndSource.Stop();
+        if (buildupFootstepSource == null) return;
+
+        normalized = Mathf.Clamp01(normalized);
+        buildupFootstepSource.volume = Mathf.Lerp(0.15f, 1f, normalized);
+    }
+
+    public void StopBuildupFootsteps()
+    {
+        if (buildupFootstepSource != null)
+            buildupFootstepSource.Stop();
+    }
+
+    public void PlayGasp()
+    {
+        if (sfxSource != null && gaspClip != null)
+            sfxSource.PlayOneShot(gaspClip);
+    }
+
+    public void PlayDoorOpen()
+    {
+        if (sfxSource != null && doorOpenClip != null)
+            sfxSource.PlayOneShot(doorOpenClip);
+    }
+
+    public void PlayChaserWalkLoop()
+    {
+        if (chaserWalkSource == null || chaserWalkClip == null) return;
+
+        chaserWalkSource.clip = chaserWalkClip;
+        chaserWalkSource.loop = true;
+        chaserWalkSource.volume = 1f;
+        chaserWalkSource.pitch = 1f;
+        chaserWalkSource.Play();
+    }
+
+    public void StopChaserWalkLoop()
+    {
+        if (chaserWalkSource != null)
+            chaserWalkSource.Stop();
+    }
+
+    public void PlayStab()
+    {
+        if (stabSource != null && stabClip != null)
+            stabSource.PlayOneShot(stabClip);
+    }
+
+    public void PlaySuccessfulStab()
+    {
+        if (stabSource != null && stabClip != null)
+            stabSource.PlayOneShot(stabClip);
+
+        if (sfxSource != null && screamClip != null)
+            sfxSource.PlayOneShot(screamClip);
+    }
+
+    public void StopAllChaserAudio()
+    {
+        StopWhistle();
+        StopBuildupFootsteps();
+        StopChaserWalkLoop();
+
+        if (stabSource != null)
+            stabSource.Stop();
     }
 
     public void PlayCaught()
     {
-        StopAllTimerSounds();
+        StopAllChaserAudio();
         StopHeartbeat();
-        if (sfxSource && caughtSound)
+
+        if (sfxSource != null && caughtSound != null)
             sfxSource.PlayOneShot(caughtSound);
     }
 
     public void PlayWin()
     {
-        StopAllTimerSounds();
+        StopAllChaserAudio();
         StopHeartbeat();
-        if (sfxSource && winSound)
+
+        if (sfxSource != null && winSound != null)
             sfxSource.PlayOneShot(winSound);
     }
 
     public void SetHeartbeatIntensity(float intensity)
     {
         if (heartbeatSource == null) return;
-        
+
         if (intensity > 0.1f)
         {
-            if (!heartbeatSource.isPlaying && heartbeatClip)
+            if (!heartbeatSource.isPlaying && heartbeatClip != null)
             {
                 heartbeatSource.clip = heartbeatClip;
                 heartbeatSource.loop = true;
                 heartbeatSource.Play();
             }
+
             heartbeatSource.volume = intensity;
             heartbeatSource.pitch = 0.8f + intensity * 0.6f;
         }
         else
         {
-            heartbeatSource.volume = 0;
+            heartbeatSource.volume = 0f;
         }
     }
 
-    void StopHeartbeat()
+    private void StopHeartbeat()
     {
-        if (heartbeatSource) heartbeatSource.Stop();
+        if (heartbeatSource != null)
+            heartbeatSource.Stop();
     }
 }
