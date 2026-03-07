@@ -6,49 +6,85 @@ public class AudioManager : MonoBehaviour
 
     [Header("Audio Sources")]
     public AudioSource sfxSource;
+    public AudioSource tickSource;
+    public AudioSource timerEndSource;
     public AudioSource heartbeatSource;
     
-    [Header("Clips")]
+    [Header("Timer Clips")]
+    public AudioClip timerStartSound;
     public AudioClip tickSound;
     public AudioClip timerEndSound;
+    
+    [Header("Game End Clips")]
     public AudioClip caughtSound;
     public AudioClip winSound;
+    
+    [Header("Heartbeat")]
     public AudioClip heartbeatClip;
+
+    private bool timerEndStarted;
 
     void Awake()
     {
         Instance = this;
     }
 
-    public void PlayTickStart()
+    public float PlayTimerStartAndGetLength()
     {
-        // Initial setup
+        if (sfxSource && timerStartSound)
+        {
+            sfxSource.PlayOneShot(timerStartSound);
+            return timerStartSound.length;
+        }
+        return 0f;
     }
 
-    public void PlayTick()
+    public void PlayTickLoop()
     {
-        if (sfxSource && tickSound)
-            sfxSource.PlayOneShot(tickSound);
+        if (tickSource && tickSound)
+        {
+            tickSource.clip = tickSound;
+            tickSource.loop = true;
+            tickSource.Play();
+        }
     }
 
-    public void PlayTimerEnd()
+    public void EnsureTimerEndPlaying()
     {
-        if (sfxSource && timerEndSound)
-            sfxSource.PlayOneShot(timerEndSound);
+        if (timerEndStarted) return;
+        timerEndStarted = true;
+        
+        // Stop tick, start end sound
+        if (tickSource) tickSource.Stop();
+        
+        if (timerEndSource && timerEndSound)
+        {
+            timerEndSource.clip = timerEndSound;
+            timerEndSource.loop = false;
+            timerEndSource.Play();
+        }
+    }
+
+    public void StopAllTimerSounds()
+    {
+        if (tickSource) tickSource.Stop();
+        if (timerEndSource) timerEndSource.Stop();
     }
 
     public void PlayCaught()
     {
+        StopAllTimerSounds();
+        StopHeartbeat();
         if (sfxSource && caughtSound)
             sfxSource.PlayOneShot(caughtSound);
-        StopHeartbeat();
     }
 
     public void PlayWin()
     {
+        StopAllTimerSounds();
+        StopHeartbeat();
         if (sfxSource && winSound)
             sfxSource.PlayOneShot(winSound);
-        StopHeartbeat();
     }
 
     public void SetHeartbeatIntensity(float intensity)

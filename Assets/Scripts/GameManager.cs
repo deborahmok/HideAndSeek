@@ -6,23 +6,23 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [Header("Timer")]
-    public float hideTime = 5f;
+    public float hideTime = 8f;
+    public float urgentTime = 3f;
     
     [Header("References")]
-    // public Monster monster;
-    public Transform monsterSpawnPoint;
-    public GameObject darkOverlay;
+    // public ChaserController monster;
+    // public Transform monsterSpawnPoint;
+    public SpriteRenderer darkOverlay;
     
-    [Header("Overlay Flash")]
-    public float flashInterval = 1f;
-    public float flashSpeedUp = 0.1f;
-    public float minFlashInterval = 0.2f;
+    [Header("Overlay Settings")]
+    public Color overlayColor = new Color(0, 0, 0, 0.7f);
+    public float urgentFlashInterval = 0.3f;
     
     private float timer;
     private float flashTimer;
-    private float currentFlashInterval;
-    private bool timerActive = true;
     private bool overlayVisible;
+    private bool timerActive;
+    private bool gameStarted;
     
     public bool IsGameOver { get; private set; }
 
@@ -34,9 +34,25 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         timer = hideTime;
-        currentFlashInterval = flashInterval;
-        if (darkOverlay) darkOverlay.SetActive(false);
-        AudioManager.Instance?.PlayTickStart();
+        timerActive = false;
+        gameStarted = false;
+        
+        if (darkOverlay)
+        {
+            darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
+            darkOverlay.gameObject.SetActive(true);
+        }
+        
+        // Play start sound, then begin timer when it ends
+        float startSoundLength = AudioManager.Instance?.PlayTimerStartAndGetLength() ?? 0f;
+        Invoke(nameof(BeginTimer), startSoundLength);
+    }
+
+    void BeginTimer()
+    {
+        gameStarted = true;
+        timerActive = true;
+        AudioManager.Instance?.PlayTickLoop();
     }
 
     void Update()
@@ -44,7 +60,13 @@ public class GameManager : MonoBehaviour
         if (!timerActive || IsGameOver) return;
 
         timer -= Time.deltaTime;
-        UpdateOverlayFlash();
+        
+        // Urgent phase: overlay flash + end sound
+        if (timer <= urgentTime)
+        {
+            UpdateUrgentFlash();
+            AudioManager.Instance?.EnsureTimerEndPlaying();
+        }
         
         if (timer <= 0)
         {
@@ -52,31 +74,35 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void UpdateOverlayFlash()
+    void UpdateUrgentFlash()
     {
         flashTimer -= Time.deltaTime;
-        
-        // Speed up as time runs out
-        float urgency = 1f - (timer / hideTime);
-        currentFlashInterval = Mathf.Lerp(flashInterval, minFlashInterval, urgency);
         
         if (flashTimer <= 0)
         {
             overlayVisible = !overlayVisible;
-            if (darkOverlay) darkOverlay.SetActive(overlayVisible);
-            flashTimer = currentFlashInterval;
+            float alpha = overlayVisible ? overlayColor.a : 0f;
+            if (darkOverlay)
+                darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, alpha);
             
-            if (overlayVisible) AudioManager.Instance?.PlayTick();
+            flashTimer = urgentFlashInterval;
         }
     }
 
     void TimerEnd()
     {
         timerActive = false;
-        if (darkOverlay) darkOverlay.SetActive(false);
-        AudioManager.Instance?.PlayTimerEnd();
         
-        // Spawn monster
+        if (darkOverlay)
+            darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
+        
+        AudioManager.Instance?.StopAllTimerSounds();
+        
+        Invoke(nameof(SpawnMonster), 0.3f);
+    }
+
+    void SpawnMonster()
+    {
         // if (monster != null && monsterSpawnPoint != null)
         // {
         //     monster.Activate(monsterSpawnPoint.position);
