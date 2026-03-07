@@ -18,7 +18,7 @@ public class ChaserController : MonoBehaviour
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private Transform exitPoint;
     [SerializeField] private HeartbeatOverlayController heartbeatOverlay;
-    [SerializeField] private float heartbeatDistance = 3.5f;
+    [SerializeField] private float heartbeatDistance = 3f;
     
     private SpriteRenderer spriteRenderer;
     private Collider2D col;
