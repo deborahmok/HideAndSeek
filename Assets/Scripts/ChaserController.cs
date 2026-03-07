@@ -22,6 +22,7 @@ public class ChaserController : MonoBehaviour
     
     private SpriteRenderer spriteRenderer;
     private Collider2D col;
+    private PlayerController player;
 
     private Vector3 targetPosition;
     private bool isVisible = false;
@@ -43,6 +44,7 @@ public class ChaserController : MonoBehaviour
     private void Start()
     {
         boxes = GameObject.FindGameObjectsWithTag("Box");
+        player = FindObjectOfType<PlayerController>();
         HideChaser();
         StartCoroutine(ChaserRoutine());
     }
@@ -125,6 +127,9 @@ public class ChaserController : MonoBehaviour
         spriteRenderer.enabled = true;
         if (col != null) col.enabled = true;
 
+        // Lock player movement
+        if (player != null) player.MovementLocked = true;
+
         PickSpawnPosition();
 
         isRoaming = true;
@@ -138,6 +143,9 @@ public class ChaserController : MonoBehaviour
         isAttacking = false;
         spriteRenderer.enabled = false;
         if (col != null) col.enabled = false;
+
+        // Unlock player movement
+        if (player != null) player.MovementLocked = false;
     }
 
     private void ChooseRandomBox()
