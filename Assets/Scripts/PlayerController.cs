@@ -19,6 +19,7 @@ public class PlayerController : MonoBehaviour
     
     public bool IsHiding { get; private set; }
     public GameObject CurrentBox { get; private set; }
+    public bool MovementLocked { get; set; } // Chaser controls this
 
     void Awake()
     {
@@ -55,6 +56,8 @@ public class PlayerController : MonoBehaviour
 
     void HandleMovement()
     {
+        if (MovementLocked) return;
+
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
         
@@ -70,6 +73,8 @@ public class PlayerController : MonoBehaviour
 
     void HandleBoxSelection()
     {
+        if (MovementLocked) return;
+        
         // Current box destroyed? Find nearest valid one
         if (CurrentBox == null || !CurrentBox.activeInHierarchy)
         {
