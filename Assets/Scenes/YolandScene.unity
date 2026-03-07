@@ -445,7 +445,7 @@ TrailRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Time: 5
+  m_Time: 2
   m_PreviewTimeScale: 1
   m_Parameters:
     serializedVersion: 3
@@ -455,7 +455,7 @@ TrailRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 1
+        value: 0.79196167
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -637,7 +637,7 @@ Transform:
   m_GameObject: {fileID: 943483292}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.99, y: -2.89, z: 0}
+  m_LocalPosition: {x: 7.27, y: -3.85, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1058,7 +1058,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   hideTime: 5
-  monster: {fileID: 0}
   monsterSpawnPoint: {fileID: 0}
   darkOverlay: {fileID: 0}
   flashInterval: 1
