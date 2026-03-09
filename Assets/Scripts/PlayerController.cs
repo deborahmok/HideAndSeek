@@ -195,6 +195,11 @@ public class PlayerController : MonoBehaviour
         {
             EnterHide(other.gameObject);
         }
+        
+        if (other.CompareTag("Exit") && !MovementLocked)
+        {
+            GameManager.Instance?.PlayerWin();
+        }
     }
 
     void EnterHide(GameObject box)

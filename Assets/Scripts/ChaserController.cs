@@ -226,6 +226,7 @@ public class ChaserController : MonoBehaviour
             else
             {
                 targetBox.SetActive(false);
+                GameManager.Instance?.NotifyBoxDestroyed();
             }
             StartCoroutine(LeaveRoom());
         }
