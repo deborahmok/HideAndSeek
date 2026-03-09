@@ -220,6 +220,7 @@ public class ChaserController : MonoBehaviour
         {
             if (box.playerInside)
             {
+                GameManager.Instance?.PlayerCaught();
                 Debug.Log("PLAYER CAUGHT");
             }
             else
