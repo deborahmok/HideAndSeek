@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
+using System.Collections;
+
 
 public class GameManager : MonoBehaviour
 {
@@ -44,6 +47,10 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        Keyboard kb = Keyboard.current;
+        if (kb != null && kb.rKey.wasPressedThisFrame) RestartGame();
+        if (kb != null && kb.escapeKey.wasPressedThisFrame) Application.Quit();
+
         if (!timerActive || IsGameOver) return;
 
         timer -= Time.deltaTime;
@@ -91,8 +98,46 @@ public class GameManager : MonoBehaviour
 
     public void PlayerCaught()
     {
+        if (IsGameOver) return;
         IsGameOver = true;
         Debug.Log("CAUGHT! Game Over");
+
+        // Stop whatever's running
+        // AudioManager.Instance?.StopBuildupFootsteps();
+        CancelInvoke();
+
+        // Camera shake — strong
+        CameraShake.Instance?.Shake(0.8f, 0.45f);
+
+        // Flash white first (shock), then hold red
+        StartCoroutine(CaughtScreenRoutine());
+    }
+
+    IEnumerator CaughtScreenRoutine()
+    {
+        if (!darkOverlay) yield break;
+
+        // 1. Instant white flash
+        darkOverlay.color = new Color(1f, 1f, 1f, 1f);
+        yield return new WaitForSeconds(0.08f);
+
+        // 2. Slam to red
+        darkOverlay.color = new Color(0.7f, 0f, 0f, 0.85f);
+        yield return new WaitForSeconds(0.15f);
+
+        // 3. Slowly fade red darker (game over hold)
+        float t = 0f;
+        Color startColor = darkOverlay.color;
+        Color endColor = new Color(0.4f, 0f, 0f, 0.95f);
+        while (t < 1f)
+        {
+            t += Time.deltaTime / 1.2f;
+            darkOverlay.color = Color.Lerp(startColor, endColor, t);
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(0.3f); // brief beat before freeze
+        Time.timeScale = 0f;
     }
 
     public void PlayerWin()
@@ -103,6 +148,7 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
