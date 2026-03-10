@@ -8,6 +8,9 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
+    [Header("Debug")]
+    public int BoxesToExit = 3; 
+
     [Header("Timer")]
     public float hideTime = 8f;
     public float urgentTime = 3f;
@@ -214,6 +217,20 @@ public class GameManager : MonoBehaviour
     {
         IsGameOver = true;
         Debug.Log("You survived!");
+    }
+
+    public void NotifyBoxDestroyed()
+    {
+        int count = 0;
+        foreach (var go in GameObject.FindGameObjectsWithTag("Box"))
+            if (go.activeInHierarchy) count++;
+        
+        count = GameObject.FindGameObjectsWithTag("Box").Length;
+    
+        Debug.Log($"Active boxes remaining: {count}");
+
+        if (count <= BoxesToExit)
+            ExitController.Instance?.SpawnExit();
     }
 
     public void RestartGame()

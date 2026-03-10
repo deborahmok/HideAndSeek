@@ -3238,6 +3238,59 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7626600758898006268, guid: 707a72d19a78d5d4ca7094d035d96543, type: 3}
   m_PrefabInstance: {fileID: 1752228162}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1770196466
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1770196468}
+  - component: {fileID: 1770196467}
+  m_Layer: 0
+  m_Name: ExitController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1770196467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1770196466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6135099f23c217846b2af0204b212820, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExitController
+  exitPrefab: {fileID: 1476463263036363916, guid: 961c77974a4bec5498892b2e1f76fbb5, type: 3}
+  possiblePositions:
+  - {x: 8, y: 4}
+  - {x: -8, y: 4}
+  - {x: -8, y: -4}
+  - {x: 8, y: -4}
+  pulseSpeed: 2
+  pulseMinScale: 0.95
+  pulseMaxScale: 1.05
+--- !u!4 &1770196468
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1770196466}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.0221, y: -0.31024, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1785377109
 GameObject:
   m_ObjectHideFlags: 0
@@ -3396,6 +3449,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d097a98042b31844bd2f0e31e8d62f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  BoxesToExit: 8
   hideTime: 10
   urgentTime: 4
   darkOverlay: {fileID: 1440070620}
@@ -4077,6 +4131,7 @@ SceneRoots:
   - {fileID: 718045698}
   - {fileID: 1827075483}
   - {fileID: 1440070621}
+  - {fileID: 1770196468}
   - {fileID: 1725466603}
   - {fileID: 1029298403}
   - {fileID: 34458237}
