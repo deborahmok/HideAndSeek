@@ -25,6 +25,8 @@ public class ChaserController : MonoBehaviour
     [SerializeField] private GameObject shadowObject;
     [SerializeField] private AudioSource screamAudio;
     [SerializeField] private AudioSource hmmAudio;
+    [SerializeField] private AudioSource confusedAudio;
+    [SerializeField] private AudioSource shockedAudio;
     
     private SpriteRenderer spriteRenderer;
     private Collider2D col;
@@ -255,19 +257,58 @@ public class ChaserController : MonoBehaviour
         isVisible = true;
         isAttacking = false;
         hasAttackedThisCycle = false;
+
         spriteRenderer.enabled = true;
         if (col != null) col.enabled = true;
         if (shadowObject != null) shadowObject.SetActive(true);
-        if (player != null) player.MovementLocked = true;
-        
+
+        PickSpawnPosition();
+
+        bool playerWasHidingOnEntry = player != null && player.IsHiding;
+
+        if (!playerWasHidingOnEntry)
+        {
+            StartCoroutine(ShockThenChase());
+            return;
+        }
+
+        StartRoaming();
+    }
+
+    IEnumerator ShockThenChase()
+    {
+        if (player == null) yield break;
+
+        if (player.IsHiding)
+        {
+            StartRoaming();
+            yield break;
+        }
+
+        if (shockedAudio)
+            shockedAudio.Play();
+
+        yield return new WaitForSeconds(0.4f);
+
+        if (player.IsHiding)
+        {
+            if (confusedAudio)
+                confusedAudio.Play();
+
+            StartRoaming();
+            yield break;
+        }
+
+        StartCoroutine(AttemptCatchPlayer());
+    }
+    
+    void StartRoaming()
+    {
         if (hmmAudio)
         {
             hmmAudio.Stop();
             hmmAudio.Play();
         }
-        
-        PickSpawnPosition();
-
         isRoaming = true;
         roamTimer = roamDuration;
         PickNewTarget();
@@ -362,6 +403,54 @@ public class ChaserController : MonoBehaviour
         else
         {
             heartbeatOverlay.StopPulse();
+        }
+    }
+    
+    IEnumerator AttemptCatchPlayer()
+    {
+        PickSpawnPosition();
+
+        float catchDistance = 0.35f;
+
+        while (true)
+        {
+            if (player == null) yield break;
+
+            if (player.IsHiding)
+            {
+                if (confusedAudio) confusedAudio.Play();
+                StartRoaming();
+                yield break;
+            }
+
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                player.transform.position,
+                moveSpeed * Time.deltaTime
+            );
+
+            if (Vector3.Distance(transform.position, player.transform.position) <= catchDistance)
+            {
+                if (bloodJabAudio) bloodJabAudio.Play();
+                if (screamAudio) screamAudio.Play();
+
+                if (heartbeatOverlay != null)
+                    heartbeatOverlay.StopAllHeartbeat();
+
+                float screamDelay = 0.8f;
+                if (screamAudio != null && screamAudio.clip != null)
+                    screamDelay = Mathf.Min(screamAudio.clip.length, 1.0f);
+
+                yield return new WaitForSeconds(screamDelay);
+
+                if (screamAudio && screamAudio.isPlaying)
+                    screamAudio.Stop();
+
+                GameManager.Instance.PlayerCaught();
+                yield break;
+            }
+
+            yield return null;
         }
     }
 }

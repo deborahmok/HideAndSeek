@@ -149,16 +149,28 @@ public class GameManager : MonoBehaviour
 
         IsGameOver = true;
         timerActive = false;
-
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player != null)
+            player.MovementLocked = true;
+        
         Debug.Log("CAUGHT! Game Over");
 
-        // Stop any scheduled audio events
+        if (whistleAudio && whistleAudio.isPlaying)
+            whistleAudio.Stop();
+
+        if (footstepBuildupAudio && footstepBuildupAudio.isPlaying)
+            footstepBuildupAudio.Stop();
+
+        if (chaserWalkAudio && chaserWalkAudio.isPlaying)
+            chaserWalkAudio.Stop();
+
+        if (reliefAudio && reliefAudio.isPlaying)
+            reliefAudio.Stop();
+
         CancelInvoke();
 
-        // Camera shake — strong
         CameraShake.Instance?.Shake(0.8f, 0.45f);
 
-        // Play game over sound
         if (gameOverAudio)
         {
             gameOverAudio.Play();

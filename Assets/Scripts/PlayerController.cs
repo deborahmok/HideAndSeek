@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
     private GameObject[] allBoxes;
     private int currentBoxIndex;
     
+    public bool IsInBox { get; set; }
     public bool IsHiding { get; private set; }
     public GameObject CurrentBox { get; private set; }
     public bool MovementLocked { get; set; } // Chaser controls this
@@ -173,6 +174,8 @@ public class PlayerController : MonoBehaviour
             
             var boxCtrl = CurrentBox.GetComponent<BoxController>();
             if (boxCtrl != null) boxCtrl.playerInside = false;
+            
+            MovementLocked = false;
         }
         
         // Enter new box
@@ -200,6 +203,7 @@ public class PlayerController : MonoBehaviour
     void EnterHide(GameObject box)
     {
         IsHiding = true;
+        MovementLocked = true;
         CurrentBox = box;
         currentBoxIndex = System.Array.IndexOf(allBoxes, box);
         
