@@ -24,6 +24,7 @@ public class ChaserController : MonoBehaviour
     [SerializeField] private AudioSource doorAudio;
     [SerializeField] private GameObject shadowObject;
     [SerializeField] private AudioSource screamAudio;
+    [SerializeField] private AudioSource hmmAudio;
     
     private SpriteRenderer spriteRenderer;
     private Collider2D col;
@@ -158,6 +159,9 @@ public class ChaserController : MonoBehaviour
             float fadeDuration = 1.2f;
             float elapsed = 0f;
 
+            if (hmmAudio && hmmAudio.isPlaying)
+                hmmAudio.Stop();
+            
             while (elapsed < fadeDuration)
             {
                 elapsed += Time.deltaTime;
@@ -255,7 +259,13 @@ public class ChaserController : MonoBehaviour
         if (col != null) col.enabled = true;
         if (shadowObject != null) shadowObject.SetActive(true);
         if (player != null) player.MovementLocked = true;
-
+        
+        if (hmmAudio)
+        {
+            hmmAudio.Stop();
+            hmmAudio.Play();
+        }
+        
         PickSpawnPosition();
 
         isRoaming = true;
