@@ -11,6 +11,7 @@ public class BoxController : MonoBehaviour
     private Vector3 originalPosition;
     [SerializeField] private float bumpAmount = 0.05f;
     [SerializeField] private float bumpDuration = 0.12f;
+    [SerializeField] private AudioSource switchBoxAudio;
     
     private void Start()
     {
@@ -23,6 +24,9 @@ public class BoxController : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInside = true;
+
+            if (switchBoxAudio) switchBoxAudio.Play();
+
             StartCoroutine(Jiggle());
             StartCoroutine(Bump());
         }
