@@ -25,9 +25,9 @@ public class ExitController : MonoBehaviour
     void Update()
     {
         if (!isPulsing || spawnedExit == null) return;
-        float s = Mathf.Lerp(pulseMinScale, pulseMaxScale,
-            (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f);
-        spawnedExit.transform.localScale = baseScale * s;
+        // float s = Mathf.Lerp(pulseMinScale, pulseMaxScale,
+        //     (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f);
+        // spawnedExit.transform.localScale = baseScale * s;
     }
     public bool HasSpawned => hasSpawned;
 
