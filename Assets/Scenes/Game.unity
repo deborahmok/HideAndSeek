@@ -3933,7 +3933,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d097a98042b31844bd2f0e31e8d62f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  BoxesToExit: 8
+  BoxesToExit: 5
   hideTime: 10
   urgentTime: 4
   darkOverlay: {fileID: 1440070620}
