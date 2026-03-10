@@ -102,7 +102,11 @@ public class ChaserController : MonoBehaviour
                 if (heartbeatOverlay != null)
                     heartbeatOverlay.StopAllHeartbeat();
 
-                yield return new WaitForSeconds(0.2f);
+                float screamDelay = 0.8f;
+                if (screamAudio != null && screamAudio.clip != null)
+                    screamDelay = Mathf.Min(screamAudio.clip.length, 1.0f);
+
+                yield return new WaitForSeconds(screamDelay);
 
                 if (screamAudio && screamAudio.isPlaying)
                     screamAudio.Stop();
