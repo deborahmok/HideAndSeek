@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
     public AudioSource chaserWalkAudio;
     [SerializeField] private AudioSource reliefAudio;
     [SerializeField] private AudioSource gameOverAudio;
+    [SerializeField] private AudioSource winAudio;
     
     [Header("Overlay Settings")]
     public Color overlayColor = new Color(0, 0, 0, 0.7f);
@@ -227,10 +228,45 @@ public class GameManager : MonoBehaviour
 
     public void PlayerWin()
     {
-        IsGameOver = true;
-        Debug.Log("You survived!");
-    }
+        if (IsGameOver) return;
 
+        IsGameOver = true;
+        timerActive = false;
+
+        Debug.Log("You survived!");
+
+        if (whistleAudio && whistleAudio.isPlaying)
+            whistleAudio.Stop();
+
+        if (footstepBuildupAudio && footstepBuildupAudio.isPlaying)
+            footstepBuildupAudio.Stop();
+
+        if (chaserWalkAudio && chaserWalkAudio.isPlaying)
+            chaserWalkAudio.Stop();
+
+        if (reliefAudio && reliefAudio.isPlaying)
+            reliefAudio.Stop();
+
+        CancelInvoke();
+
+        ChaserController chaser = FindFirstObjectByType<ChaserController>();
+        if (chaser != null)
+        {
+            chaser.StopAllCoroutines();
+            chaser.gameObject.SetActive(false);
+        }
+
+        if (winAudio)
+        {
+            winAudio.Play();
+            Invoke(nameof(RestartGame), winAudio.clip.length);
+        }
+        else
+        {
+            Invoke(nameof(RestartGame), 2f);
+        }
+    }
+    
     public void NotifyBoxDestroyed()
     {
         int count = 0;

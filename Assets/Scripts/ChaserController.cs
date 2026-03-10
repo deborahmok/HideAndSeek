@@ -255,14 +255,16 @@ public class ChaserController : MonoBehaviour
 
     private void ShowChaser()
     {
+        if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
+
         isVisible = true;
         isAttacking = false;
         hasAttackedThisCycle = false;
-
         spriteRenderer.enabled = true;
+        
         if (col != null) col.enabled = true;
         if (shadowObject != null) shadowObject.SetActive(true);
-
+        
         PickSpawnPosition();
 
         bool playerWasHidingOnEntry = player != null && player.IsHiding;
