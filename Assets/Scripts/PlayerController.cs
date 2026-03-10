@@ -48,11 +48,20 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
-        
+
+        if (MovementLocked) return;
+
         if (IsHiding)
-            HandleBoxSelection();
+        {
+            ChaserController chaser = FindFirstObjectByType<ChaserController>();
+
+            if (chaser == null || !chaser.IsVisible)
+                HandleBoxSelection();
+        }
         else
+        {
             HandleMovement();
+        }
     }
 
     void HandleMovement()
@@ -174,8 +183,6 @@ public class PlayerController : MonoBehaviour
             
             var boxCtrl = CurrentBox.GetComponent<BoxController>();
             if (boxCtrl != null) boxCtrl.playerInside = false;
-            
-            MovementLocked = false;
         }
         
         // Enter new box
@@ -208,18 +215,17 @@ public class PlayerController : MonoBehaviour
     void EnterHide(GameObject box)
     {
         IsHiding = true;
-        MovementLocked = true;
         CurrentBox = box;
         currentBoxIndex = System.Array.IndexOf(allBoxes, box);
-        
+
         sr.color = hiddenColor;
         if (trail) trail.enabled = false;
-        
+
         transform.position = box.transform.position;
-        
+
         var hideBox = box.GetComponent<HideBox>();
         if (hideBox != null) hideBox.OnPlayerEnter();
-        
+
         var boxCtrl = box.GetComponent<BoxController>();
         if (boxCtrl != null) boxCtrl.playerInside = true;
     }

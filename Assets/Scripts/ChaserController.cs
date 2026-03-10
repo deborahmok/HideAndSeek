@@ -39,7 +39,7 @@ public class ChaserController : MonoBehaviour
     private bool isRoaming = false;
     private float roamTimer = 0f;
     private GameObject lastTargetBox;
-    
+    public bool IsVisible => isVisible;
     private GameObject[] boxes;
     private GameObject targetBox;
 
