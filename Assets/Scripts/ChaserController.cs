@@ -19,6 +19,11 @@ public class ChaserController : MonoBehaviour
     [SerializeField] private Transform exitPoint;
     [SerializeField] private HeartbeatOverlayController heartbeatOverlay;
     [SerializeField] private float heartbeatDistance = 3f;
+    [SerializeField] private AudioSource stabAudio;
+    [SerializeField] private AudioSource bloodJabAudio;
+    [SerializeField] private AudioSource doorAudio;
+    [SerializeField] private GameObject shadowObject;
+    [SerializeField] private AudioSource screamAudio;
     
     private SpriteRenderer spriteRenderer;
     private Collider2D col;
@@ -49,6 +54,125 @@ public class ChaserController : MonoBehaviour
         StartCoroutine(ChaserRoutine());
     }
 
+    private IEnumerator JabAttack(Vector3 dir)
+    {
+        isAttacking = true;
+
+        Vector3 startPos = transform.position;
+        Vector3 jabPos = startPos + dir * jabDistance;
+
+        int jabCount = 3;
+        if (GameManager.Instance && GameManager.Instance.chaserWalkAudio)
+            GameManager.Instance.chaserWalkAudio.Stop();
+        for (int i = 0; i < jabCount; i++)
+        {   
+            if (stabAudio && stabAudio.clip != null) stabAudio.PlayOneShot(stabAudio.clip);
+            while (Vector3.Distance(transform.position, jabPos) > 0.02f)
+            {
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    jabPos,
+                    jabSpeed * Time.deltaTime
+                );
+                yield return null;
+            }
+
+            while (Vector3.Distance(transform.position, startPos) > 0.02f)
+            {
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    startPos,
+                    jabSpeed * Time.deltaTime
+                );
+                yield return null;
+            }
+
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        BoxController box = targetBox.GetComponent<BoxController>();
+
+        if (box != null)
+        {
+            if (box.playerInside)
+            {
+                if (bloodJabAudio) bloodJabAudio.Play();
+                if (screamAudio) screamAudio.Play();
+
+                if (heartbeatOverlay != null)
+                    heartbeatOverlay.StopAllHeartbeat();
+
+                yield return new WaitForSeconds(0.2f);
+
+                if (screamAudio && screamAudio.isPlaying)
+                    screamAudio.Stop();
+
+                GameManager.Instance.PlayerCaught();
+            }
+            else
+            {
+                targetBox.SetActive(false);
+                GameManager.Instance?.NotifyBoxDestroyed();
+            }
+            StartCoroutine(LeaveRoom());
+        }
+
+        hasAttackedThisCycle = true;
+        isAttacking = false;
+    }
+    
+    private IEnumerator LeaveRoom()
+    {
+        yield return new WaitForSeconds(2f);
+        if (GameManager.Instance && GameManager.Instance.chaserWalkAudio && !GameManager.Instance.chaserWalkAudio.isPlaying)
+        {
+            GameManager.Instance.chaserWalkAudio.volume = 0.8f;
+            GameManager.Instance.chaserWalkAudio.Play();
+        }
+        
+        Vector3 dirToExit = (exitPoint.position - transform.position).normalized;
+        Vector3 stopBeforeExit = exitPoint.position - dirToExit * 1.0f;
+
+        while (Vector3.Distance(transform.position, stopBeforeExit) > 0.05f)
+        {
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                stopBeforeExit,
+                moveSpeed * Time.deltaTime
+            );
+
+            yield return null;
+        }
+
+        if (doorAudio)
+            doorAudio.Play();
+
+        if (GameManager.Instance && GameManager.Instance.chaserWalkAudio)
+        {
+            AudioSource walk = GameManager.Instance.chaserWalkAudio;
+
+            float startVolume = walk.volume;
+            float fadeDuration = 1.2f;
+            float elapsed = 0f;
+
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / fadeDuration;
+                walk.volume = Mathf.Lerp(startVolume, 0f, t);
+                yield return null;
+            }
+
+            walk.Stop();
+            walk.volume = startVolume;
+        }
+
+        HideChaser();
+        if (GameManager.Instance)
+            GameManager.Instance.StartNewRound();
+    }
+    
+    
     private void Update()
     {
         if (!isVisible || isAttacking)
@@ -126,8 +250,7 @@ public class ChaserController : MonoBehaviour
         hasAttackedThisCycle = false;
         spriteRenderer.enabled = true;
         if (col != null) col.enabled = true;
-
-        // Lock player movement
+        if (shadowObject != null) shadowObject.SetActive(true);
         if (player != null) player.MovementLocked = true;
 
         PickSpawnPosition();
@@ -142,9 +265,8 @@ public class ChaserController : MonoBehaviour
         isVisible = false;
         isAttacking = false;
         spriteRenderer.enabled = false;
+        if (shadowObject != null) shadowObject.SetActive(false);
         if (col != null) col.enabled = false;
-
-        // Unlock player movement
         if (player != null) player.MovementLocked = false;
     }
 
@@ -178,79 +300,6 @@ public class ChaserController : MonoBehaviour
     private void PickSpawnPosition()
     {
         transform.position = spawnPoint.position;
-    }
-
-    private IEnumerator JabAttack(Vector3 dir)
-    {
-        isAttacking = true;
-
-        Vector3 startPos = transform.position;
-        Vector3 jabPos = startPos + dir * jabDistance;
-
-        int jabCount = 3;
-
-        for (int i = 0; i < jabCount; i++)
-        {
-            while (Vector3.Distance(transform.position, jabPos) > 0.02f)
-            {
-                transform.position = Vector3.MoveTowards(
-                    transform.position,
-                    jabPos,
-                    jabSpeed * Time.deltaTime
-                );
-                yield return null;
-            }
-
-            while (Vector3.Distance(transform.position, startPos) > 0.02f)
-            {
-                transform.position = Vector3.MoveTowards(
-                    transform.position,
-                    startPos,
-                    jabSpeed * Time.deltaTime
-                );
-                yield return null;
-            }
-
-            yield return new WaitForSeconds(0.1f);
-        }
-
-        BoxController box = targetBox.GetComponent<BoxController>();
-
-        if (box != null)
-        {
-            if (box.playerInside)
-            {
-                GameManager.Instance?.PlayerCaught();
-                Debug.Log("PLAYER CAUGHT");
-            }
-            else
-            {
-                targetBox.SetActive(false);
-                GameManager.Instance?.NotifyBoxDestroyed();
-            }
-            StartCoroutine(LeaveRoom());
-        }
-
-        hasAttackedThisCycle = true;
-        isAttacking = false;
-    }
-    
-    private IEnumerator LeaveRoom()
-    {
-        yield return new WaitForSeconds(2f);
-
-        while (Vector3.Distance(transform.position, exitPoint.position) > 0.05f)
-        {
-            transform.position = Vector3.MoveTowards(
-                transform.position,
-                exitPoint.position,
-                moveSpeed * Time.deltaTime
-            );
-
-            yield return null;
-        }
-
-        HideChaser();
     }
     
     private void PickNewTarget()

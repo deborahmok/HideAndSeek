@@ -17,6 +17,13 @@ public class GameManager : MonoBehaviour
     
     [Header("References")]
     public SpriteRenderer darkOverlay;
+    public AudioSource whistleAudio;
+    public AudioSource gaspAudio;
+    public AudioSource footstepBuildupAudio;
+    public AudioSource doorAudio;
+    public AudioSource chaserWalkAudio;
+    [SerializeField] private AudioSource reliefAudio;
+    [SerializeField] private AudioSource gameOverAudio;
     
     [Header("Overlay Settings")]
     public Color overlayColor = new Color(0, 0, 0, 0.7f);
@@ -27,6 +34,8 @@ public class GameManager : MonoBehaviour
     private bool overlayVisible;
     private bool timerActive;
     private bool gameStarted;
+    private bool urgentAudioPlayed;
+    private bool doorPlayed;
     
     public bool IsGameOver { get; private set; }
 
@@ -40,7 +49,7 @@ public class GameManager : MonoBehaviour
         timer = hideTime;
         timerActive = true;
         gameStarted = true;
-        
+        if (whistleAudio) whistleAudio.Play();
         if (darkOverlay)
         {
             darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
@@ -57,16 +66,49 @@ public class GameManager : MonoBehaviour
         if (!timerActive || IsGameOver) return;
 
         timer -= Time.deltaTime;
+        if (timer <= 2f && !doorPlayed)
+        {
+            doorPlayed = true;
+
+            if (footstepBuildupAudio && footstepBuildupAudio.isPlaying)
+                footstepBuildupAudio.Stop();
+
+            if (doorAudio)
+                doorAudio.Play();
+        }
         
         if (timer <= urgentTime)
         {
-            UpdateUrgentFlash();
+            // UpdateUrgentFlash();
+            if (footstepBuildupAudio)
+            {
+                float progress = 1f - Mathf.Clamp01(timer / urgentTime);
+                footstepBuildupAudio.volume = Mathf.Lerp(0.2f, 1f, progress);
+            }
+            if (!urgentAudioPlayed)
+            {
+                urgentAudioPlayed = true;
+
+                if (whistleAudio && whistleAudio.isPlaying)
+                    whistleAudio.Stop();
+
+                if (footstepBuildupAudio)
+                    footstepBuildupAudio.Play();
+
+                Invoke(nameof(PlayGasp), 1f);
+            }
         }
         
         if (timer <= 0)
         {
             TimerEnd();
         }
+    }
+    
+    void PlayGasp()
+    {
+        if (gaspAudio)
+            gaspAudio.Play();
     }
 
     void UpdateUrgentFlash()
@@ -88,6 +130,9 @@ public class GameManager : MonoBehaviour
     void TimerEnd()
     {
         timerActive = false;
+
+        if (footstepBuildupAudio && footstepBuildupAudio.isPlaying)
+            footstepBuildupAudio.Stop();
         
         if (darkOverlay)
             darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
@@ -97,49 +142,74 @@ public class GameManager : MonoBehaviour
 
     void SpawnMonster()
     {
+        if (chaserWalkAudio)
+            chaserWalkAudio.Play();
     }
 
     public void PlayerCaught()
     {
         if (IsGameOver) return;
+
         IsGameOver = true;
+        timerActive = false;
+
         Debug.Log("CAUGHT! Game Over");
 
-        // Stop whatever's running
-        // AudioManager.Instance?.StopBuildupFootsteps();
+        // Stop any scheduled audio events
         CancelInvoke();
 
         // Camera shake — strong
         CameraShake.Instance?.Shake(0.8f, 0.45f);
 
-        // Flash white first (shock), then hold red
-        StartCoroutine(CaughtScreenRoutine());
+        // Play game over sound
+        if (gameOverAudio)
+        {
+            gameOverAudio.Play();
+            Invoke(nameof(RestartGame), gameOverAudio.clip.length);
+        }
+        else
+        {
+            Invoke(nameof(RestartGame), 3f);
+        }
+
+        StartCoroutine(GameOverSequence());
     }
 
+    IEnumerator GameOverSequence()
+    {
+        if (gameOverAudio)
+            gameOverAudio.Play();
+
+        yield return StartCoroutine(CaughtScreenRoutine());
+
+        float waitTime = gameOverAudio ? gameOverAudio.clip.length : 2f;
+        yield return new WaitForSecondsRealtime(waitTime);
+
+        RestartGame();
+    }
+    
     IEnumerator CaughtScreenRoutine()
     {
         if (!darkOverlay) yield break;
 
-        // 1. Instant white flash
         darkOverlay.color = new Color(1f, 1f, 1f, 1f);
-        yield return new WaitForSeconds(0.08f);
+        yield return new WaitForSecondsRealtime(0.08f);
 
-        // 2. Slam to red
         darkOverlay.color = new Color(0.7f, 0f, 0f, 0.85f);
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSecondsRealtime(0.15f);
 
-        // 3. Slowly fade red darker (game over hold)
         float t = 0f;
         Color startColor = darkOverlay.color;
         Color endColor = new Color(0.4f, 0f, 0f, 0.95f);
+
         while (t < 1f)
         {
-            t += Time.deltaTime / 1.2f;
+            t += Time.unscaledDeltaTime / 1.2f;
             darkOverlay.color = Color.Lerp(startColor, endColor, t);
             yield return null;
         }
 
-        yield return new WaitForSeconds(0.3f); // brief beat before freeze
+        yield return new WaitForSecondsRealtime(0.3f);
         Time.timeScale = 0f;
     }
 
@@ -167,5 +237,39 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+    
+    public void StartNewRound()
+    {
+        timer = hideTime;
+        flashTimer = 0f;
+        overlayVisible = false;
+        timerActive = true;
+        urgentAudioPlayed = false;
+        doorPlayed = false;
+        
+        if (darkOverlay)
+            darkOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0f);
+
+        Invoke(nameof(PlayReliefThenWhistle), 0.8f);
+    }
+    
+    void PlayReliefThenWhistle()
+    {
+        if (reliefAudio)
+        {
+            reliefAudio.Play();
+            Invoke(nameof(StartWhistle), reliefAudio.clip.length);
+        }
+        else
+        {
+            Invoke(nameof(StartWhistle), 1f);
+        }
+    }
+    
+    void StartWhistle()
+    {
+        if (whistleAudio)
+            whistleAudio.Play();
     }
 }
