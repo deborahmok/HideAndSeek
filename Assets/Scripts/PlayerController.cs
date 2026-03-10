@@ -84,7 +84,23 @@ public class PlayerController : MonoBehaviour
     void HandleBoxSelection()
     {
         if (MovementLocked) return;
-        
+        Keyboard kb = Keyboard.current;
+        if (kb == null) return;
+                
+        // --- EXIT BOX MODE ---
+        if (ExitController.Instance != null && ExitController.Instance.HasSpawned)
+        {
+            Vector2 exitDir = Vector2.zero;
+            if (kb.wKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame)         exitDir = Vector2.up;
+            else if (kb.sKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame)  exitDir = Vector2.down;
+            else if (kb.aKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame)  exitDir = Vector2.left;
+            else if (kb.dKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame) exitDir = Vector2.right;
+
+            if (exitDir != Vector2.zero)
+                ExitBox(exitDir);
+
+            return;
+        }
         // Current box destroyed? Find nearest valid one
         if (CurrentBox == null || !CurrentBox.activeInHierarchy)
         {
@@ -103,8 +119,8 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        Keyboard kb = Keyboard.current;
-        if (kb == null) return;
+        // Keyboard kb = Keyboard.current;
+        // if (kb == null) return;
 
         int col = currentBoxIndex % 3;
         int row = currentBoxIndex / 3;
@@ -228,5 +244,26 @@ public class PlayerController : MonoBehaviour
 
         var boxCtrl = box.GetComponent<BoxController>();
         if (boxCtrl != null) boxCtrl.playerInside = true;
+    }
+
+    void ExitBox(Vector2 direction)
+    {
+        // Exit current box state
+        if (CurrentBox != null && CurrentBox.activeInHierarchy)
+        {
+            var hideBox = CurrentBox.GetComponent<HideBox>();
+            if (hideBox != null) hideBox.OnPlayerExit();
+
+            var boxCtrl = CurrentBox.GetComponent<BoxController>();
+            if (boxCtrl != null) boxCtrl.playerInside = false;
+        }
+
+        IsHiding = false;
+        CurrentBox = null;
+        sr.color = normalColor;
+        if (trail) trail.enabled = true;
+
+        // Nudge out so player doesn't immediately re-trigger the box collider
+        rb.position += direction * 0.6f;
     }
 }
