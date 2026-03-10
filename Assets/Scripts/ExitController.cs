@@ -15,7 +15,7 @@ public class ExitController : MonoBehaviour
     private SpriteRenderer sr;
     private Vector3 baseScale;
     private bool isPulsing = false;
-    private bool hasSpawned = false;
+    public bool hasSpawned = false;
 
     void Awake()
     {
@@ -29,6 +29,7 @@ public class ExitController : MonoBehaviour
             (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f);
         spawnedExit.transform.localScale = baseScale * s;
     }
+    public bool HasSpawned => hasSpawned;
 
     public void SpawnExit()
     {
