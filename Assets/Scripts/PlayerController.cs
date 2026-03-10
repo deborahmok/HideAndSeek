@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     
     private GameObject[] allBoxes;
     private int currentBoxIndex;
+    public GameObject[] AllBoxes => allBoxes;
     
     public bool IsInBox { get; set; }
     public bool IsHiding { get; private set; }

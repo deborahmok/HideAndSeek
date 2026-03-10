@@ -253,7 +253,10 @@ public class GameManager : MonoBehaviour
         if (chaser != null)
         {
             chaser.StopAllCoroutines();
-            chaser.gameObject.SetActive(false);
+            PlayerController player = FindFirstObjectByType<PlayerController>();
+            GameObject[] boxes = player != null ? player.AllBoxes : null;
+
+            StartCoroutine(chaser.WinBreakdown(boxes));
         }
 
         if (winAudio)

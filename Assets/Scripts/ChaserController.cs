@@ -27,6 +27,7 @@ public class ChaserController : MonoBehaviour
     [SerializeField] private AudioSource hmmAudio;
     [SerializeField] private AudioSource confusedAudio;
     [SerializeField] private AudioSource shockedAudio;
+    [SerializeField] private GameObject burstFlash;
     
     private SpriteRenderer spriteRenderer;
     private Collider2D col;
@@ -455,5 +456,184 @@ public class ChaserController : MonoBehaviour
 
             yield return null;
         }
+    }
+    
+    public IEnumerator WinBreakdown(GameObject[] boxes)
+    {
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = true;
+
+        if (shadowObject != null)
+            shadowObject.SetActive(true);
+
+        if (Camera.main != null)
+            transform.position = Camera.main.transform.position + new Vector3(0f, 1.5f, 5f);
+        else
+            transform.position = new Vector3(0f, 1.5f, 0f);
+
+        Vector3 startScale = transform.localScale;
+        Vector3 startPos = transform.position;
+
+        float shakeTime = 0.6f;
+        float timer = 0f;
+
+        while (timer < shakeTime)
+        {
+            timer += Time.deltaTime;
+
+            float shakeX = Random.Range(-0.05f, 0.05f);
+            float shakeY = Random.Range(-0.05f, 0.05f);
+
+            transform.position = startPos + new Vector3(shakeX, shakeY, 0);
+
+            float tilt = Random.Range(-18f, 18f);
+            transform.rotation = Quaternion.Euler(0, 0, tilt);
+
+            yield return null;
+        }
+
+        transform.position = startPos;
+        transform.rotation = Quaternion.identity;
+        
+        float squishTime = 0.5f;
+        timer = 0f;
+
+        float destroyDelay = 0.08f;
+
+        if (boxes != null)
+        {
+            foreach (GameObject box in boxes)
+            {
+                if (box != null && box.activeInHierarchy)
+                {
+                    box.SetActive(false);
+                    yield return new WaitForSeconds(0.08f);
+                }
+            }
+        }
+        
+        while (timer < squishTime)
+        {
+            timer += Time.deltaTime;
+
+            float t = timer / squishTime;
+
+            transform.localScale = Vector3.Lerp(
+                startScale,
+                new Vector3(startScale.x * 1.3f, startScale.y * 0.6f, 1),
+                t
+            );
+
+            yield return null;
+        }
+
+        float shrinkTime = 0.7f;
+        timer = 0f;
+
+        while (timer < shrinkTime)
+        {
+            timer += Time.deltaTime;
+
+            float t = timer / shrinkTime;
+
+            transform.localScale = Vector3.Lerp(
+                transform.localScale,
+                Vector3.zero,
+                t
+            );
+
+            yield return null;
+        }
+        yield return StartCoroutine(PlayBurstFlash());
+        yield return StartCoroutine(SpawnFragments());
+        gameObject.SetActive(false);
+    }
+    
+    IEnumerator SpawnFragments()
+    {
+        int fragmentCount = 8;
+
+        for (int i = 0; i < fragmentCount; i++)
+        {
+            GameObject frag = new GameObject("Fragment");
+            frag.transform.position = transform.position;
+
+            SpriteRenderer sr = frag.AddComponent<SpriteRenderer>();
+            sr.sprite = spriteRenderer.sprite;
+            sr.color = Color.red;
+
+            float scale = Random.Range(0.05f, 0.12f);
+            frag.transform.localScale = new Vector3(scale, scale, 1f);
+
+            Vector2 dir = Random.insideUnitCircle.normalized;
+            float speed = Random.Range(2f, 4f);
+
+            StartCoroutine(FragmentMove(frag, dir * speed));
+        }
+
+        yield return null;
+    }
+    
+    IEnumerator FragmentMove(GameObject frag, Vector2 velocity)
+    {
+        float time = 0f;
+        float duration = 0.6f;
+
+        SpriteRenderer sr = frag.GetComponent<SpriteRenderer>();
+        Color startColor = sr.color;
+        Color endColor = startColor;
+        endColor.a = 0f;
+
+        while (time < duration)
+        {
+            time += Time.deltaTime;
+
+            frag.transform.position += (Vector3)(velocity * Time.deltaTime);
+
+            if (sr != null)
+                sr.color = Color.Lerp(startColor, endColor, time / duration);
+
+            yield return null;
+        }
+
+        Destroy(frag);
+    }
+    
+    IEnumerator PlayBurstFlash()
+    {
+        if (burstFlash == null) yield break;
+
+        burstFlash.SetActive(true);
+        burstFlash.transform.localScale = new Vector3(0.2f, 0.2f, 1f);
+
+        SpriteRenderer burstSR = burstFlash.GetComponent<SpriteRenderer>();
+        Color startColor = burstSR != null ? burstSR.color : Color.white;
+        Color endColor = startColor;
+        endColor.a = 0f;
+
+        float duration = 0.25f;
+        float t = 0f;
+
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float p = t / duration;
+
+            burstFlash.transform.localScale = Vector3.Lerp(
+                new Vector3(0.2f, 0.2f, 1f),
+                new Vector3(2.5f, 2.5f, 1f),
+                p
+            );
+
+            if (burstSR != null)
+                burstSR.color = Color.Lerp(startColor, endColor, p);
+
+            yield return null;
+        }
+
+        burstFlash.SetActive(false);
+
+        if (burstSR != null)
+            burstSR.color = startColor;
     }
 }
